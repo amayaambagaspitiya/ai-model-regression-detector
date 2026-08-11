@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -262,6 +263,11 @@ def main() -> None:
     )
 
     print_comparison(comparison)
+
+    if comparison["status"] == "REGRESSION":
+        sys.exit(1)
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":
