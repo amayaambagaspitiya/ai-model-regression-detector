@@ -1,0 +1,117 @@
+{
+  "configuration": {
+    "prompt_path": "prompts/email_classifier_v1.txt",
+    "model": "llama-3.1-8b-instant",
+    "temperature": 0
+  },
+  "scores": {
+    "total": 10,
+    "correct": 7,
+    "incorrect": 3,
+    "accuracy": 0.7,
+    "categories": {
+      "billing": {
+        "total": 2,
+        "correct": 1,
+        "incorrect": 1,
+        "accuracy": 0.5
+      },
+      "support": {
+        "total": 2,
+        "correct": 2,
+        "incorrect": 0,
+        "accuracy": 1.0
+      },
+      "sales": {
+        "total": 2,
+        "correct": 2,
+        "incorrect": 0,
+        "accuracy": 1.0
+      },
+      "spam": {
+        "total": 2,
+        "correct": 2,
+        "incorrect": 0,
+        "accuracy": 1.0
+      },
+      "other": {
+        "total": 2,
+        "correct": 0,
+        "incorrect": 2,
+        "accuracy": 0.0
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "email_001",
+      "email": "Hi, I was charged twice for my subscription this month. Can you check my invoice?",
+      "expected_label": "billing",
+      "predicted_label": "support",
+      "correct": false
+    },
+    {
+      "id": "email_002",
+      "email": "I cannot log in to my account and need help resetting my password.",
+      "expected_label": "support",
+      "predicted_label": "support",
+      "correct": true
+    },
+    {
+      "id": "email_003",
+      "email": "Can someone send me pricing details for your enterprise plan?",
+      "expected_label": "sales",
+      "predicted_label": "sales",
+      "correct": true
+    },
+    {
+      "id": "email_004",
+      "email": "Congratulations, you are a winner! Click here to claim free money now.",
+      "expected_label": "spam",
+      "predicted_label": "spam",
+      "correct": true
+    },
+    {
+      "id": "email_005",
+      "email": "Hello, I wanted to ask about your office opening hours.",
+      "expected_label": "other",
+      "predicted_label": "support",
+      "correct": false
+    },
+    {
+      "id": "email_006",
+      "email": "The payment failed but my card was still charged.",
+      "expected_label": "billing",
+      "predicted_label": "billing",
+      "correct": true
+    },
+    {
+      "id": "email_007",
+      "email": "The dashboard keeps showing an error when I upload a file.",
+      "expected_label": "support",
+      "predicted_label": "support",
+      "correct": true
+    },
+    {
+      "id": "email_008",
+      "email": "We would like to book a product demo for our team.",
+      "expected_label": "sales",
+      "predicted_label": "sales",
+      "correct": true
+    },
+    {
+      "id": "email_009",
+      "email": "You have been selected for a limited-time cash prize.",
+      "expected_label": "spam",
+      "predicted_label": "spam",
+      "correct": true
+    },
+    {
+      "id": "email_010",
+      "email": "Please update my mailing address in your records.",
+      "expected_label": "other",
+      "predicted_label": "support",
+      "correct": false
+    }
+  ]
+}
