@@ -8,7 +8,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from evals.scoring import calculate_scores, print_scores
-from src.email_classifier import ClassificationError, classify_email_with_retry
+from src.email_classifier import (
+    ClassificationError,
+    ClassificationResult,
+    classify_email_with_retry,
+)
 
 
 DATASET_PATH = PROJECT_ROOT / "data" / "golden_emails.jsonl"
@@ -37,6 +41,7 @@ def load_golden_dataset(dataset_path: Path) -> list[dict]:
 def run_evaluation(
     prompt_path: str,
     model: str,
+    structured_output: bool = False,
 ) -> list[dict]:
     dataset = load_golden_dataset(DATASET_PATH)
     results = []
@@ -45,14 +50,23 @@ def run_evaluation(
         expected_label = item["expected_label"]
         error = None
         predicted_label = None
+        predicted_summary = None
         retry_count = 0
 
         try:
-            predicted_label, retry_count = classify_email_with_retry(
+            classification, retry_count = classify_email_with_retry(
                 email_text=item["email"],
                 prompt_path=prompt_path,
                 model=model,
+                structured_output=structured_output,
             )
+
+            if isinstance(classification, ClassificationResult):
+                predicted_label = classification.category
+                predicted_summary = classification.summary
+            else:
+                predicted_label = classification
+
             correct = predicted_label == expected_label
         except ClassificationError as exc:
             predicted_label = None
@@ -71,6 +85,7 @@ def run_evaluation(
                 "email": item["email"],
                 "expected_label": expected_label,
                 "predicted_label": predicted_label,
+                "predicted_summary": predicted_summary,
                 "correct": correct,
                 "error": error,
                 "retry_count": retry_count,
@@ -123,6 +138,7 @@ def save_results(
     prompt_path: str,
     model: str,
     output_path: str,
+    structured_output: bool = False,
 ) -> None:
     resolved_output_path = PROJECT_ROOT / output_path
     resolved_output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -132,6 +148,7 @@ def save_results(
             "prompt_path": prompt_path,
             "model": model,
             "temperature": 0,
+            "structured_output": structured_output,
         },
         "scores": scores,
         "results": results,
@@ -166,6 +183,12 @@ def parse_arguments() -> argparse.Namespace:
         help="Path where results will be saved.",
     )
 
+    parser.add_argument(
+        "--structured-output",
+        action="store_true",
+        help="Parse and validate category and summary JSON output.",
+    )
+
     return parser.parse_args()
 
 
@@ -175,6 +198,7 @@ if __name__ == "__main__":
     evaluation_results = run_evaluation(
         prompt_path=args.prompt,
         model=args.model,
+        structured_output=args.structured_output,
     )
 
     print_results(evaluation_results)
@@ -188,5 +212,6 @@ if __name__ == "__main__":
         prompt_path=args.prompt,
         model=args.model,
         output_path=args.output,
+        structured_output=args.structured_output,
     )
 

@@ -1,13 +1,31 @@
+import json
 import os
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 from groq import Groq
+from pydantic import BaseModel, ValidationError
 
 
 load_dotenv()
 
 VALID_LABELS = {"billing", "support", "sales", "spam", "other"}
+
+
+class ClassificationResult(BaseModel):
+    category: Literal["billing", "support", "sales", "spam", "other"]
+    summary: str
+
+
+def parse_classification_response(raw_output: str) -> ClassificationResult:
+    try:
+        parsed = json.loads(raw_output.strip())
+        return ClassificationResult.model_validate(parsed)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        raise ValueError(
+            f"Invalid classification output: {raw_output}"
+        ) from exc
 
 
 class ClassificationError(Exception):
@@ -75,7 +93,8 @@ def classify_email(
     email_text: str,
     prompt_path: str = "prompts/email_classifier_v1.txt",
     model: str = "llama-3.1-8b-instant",
-) -> str:
+    structured_output: bool = False,
+) -> str | ClassificationResult:
     """Classify an email using a model hosted on Groq."""
     prompt_template = load_prompt(prompt_path)
     final_prompt = build_prompt(prompt_template, email_text)
@@ -108,6 +127,9 @@ def classify_email(
     print(f"\nMODEL: {model}")
     print(f"RAW OUTPUT: {raw_output!r}")
 
+    if structured_output:
+        return parse_classification_response(raw_output)
+
     return normalize_label(raw_output)
 
 
@@ -115,7 +137,8 @@ def classify_email_with_retry(
     email_text: str,
     prompt_path: str = "prompts/email_classifier_v1.txt",
     model: str = "llama-3.1-8b-instant",
-) -> tuple[str, int]:
+    structured_output: bool = False,
+) -> tuple[str | ClassificationResult, int]:
     """Classify once; on empty/invalid output, retry once.
 
     Returns:
@@ -130,6 +153,7 @@ def classify_email_with_retry(
             email_text=email_text,
             prompt_path=prompt_path,
             model=model,
+            structured_output=structured_output,
         ), 0
     except ValueError as first_error:
         print(
@@ -137,12 +161,13 @@ def classify_email_with_retry(
         )
 
         try:
-            label = classify_email(
+            result = classify_email(
                 email_text=email_text,
                 prompt_path=prompt_path,
                 model=model,
+                structured_output=structured_output,
             )
-            return label, 1
+            return result, 1
         except ValueError as second_error:
             raise ClassificationError(
                 str(second_error),
