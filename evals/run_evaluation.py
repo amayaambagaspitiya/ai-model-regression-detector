@@ -11,15 +11,32 @@ from evals.scoring import calculate_scores, print_scores
 from src.email_classifier import (
     ClassificationError,
     ClassificationResult,
+    VALID_LABELS,
     classify_email_with_retry,
 )
 
 
-DATASET_PATH = PROJECT_ROOT / "data" / "golden_emails.jsonl"
+REQUIRED_DATASET_FIELDS = {
+    "id",
+    "email",
+    "expected_label",
+    "expected_summary",
+    "expected_difficulty",
+    "notes",
+}
+VALID_DIFFICULTIES = {"easy", "medium", "hard"}
+
+
+def resolve_project_path(path: str) -> Path:
+    resolved_path = Path(path)
+    if not resolved_path.is_absolute():
+        resolved_path = PROJECT_ROOT / resolved_path
+    return resolved_path
 
 
 def load_golden_dataset(dataset_path: Path) -> list[dict]:
     records = []
+    seen_ids = set()
 
     with dataset_path.open("r", encoding="utf-8") as file:
         for line_number, line in enumerate(file, start=1):
@@ -29,11 +46,51 @@ def load_golden_dataset(dataset_path: Path) -> list[dict]:
                 continue
 
             try:
-                records.append(json.loads(line))
+                record = json.loads(line)
             except json.JSONDecodeError as error:
                 raise ValueError(
                     f"Invalid JSON on line {line_number}: {error}"
                 ) from error
+
+            if not isinstance(record, dict):
+                raise ValueError(
+                    f"Expected a JSON object on line {line_number}"
+                )
+
+            missing_fields = REQUIRED_DATASET_FIELDS - record.keys()
+            if missing_fields:
+                raise ValueError(
+                    f"Missing fields on line {line_number}: "
+                    f"{sorted(missing_fields)}"
+                )
+
+            for field in REQUIRED_DATASET_FIELDS:
+                if not isinstance(record[field], str) or not record[field].strip():
+                    raise ValueError(
+                        f"Field {field!r} must be a non-empty string "
+                        f"on line {line_number}"
+                    )
+
+            email_id = record["id"]
+            if email_id in seen_ids:
+                raise ValueError(
+                    f"Duplicate email ID on line {line_number}: {email_id}"
+                )
+
+            if record["expected_label"] not in VALID_LABELS:
+                raise ValueError(
+                    f"Invalid expected_label on line {line_number}: "
+                    f"{record['expected_label']!r}"
+                )
+
+            if record["expected_difficulty"] not in VALID_DIFFICULTIES:
+                raise ValueError(
+                    f"Invalid expected_difficulty on line {line_number}: "
+                    f"{record['expected_difficulty']!r}"
+                )
+
+            seen_ids.add(email_id)
+            records.append(record)
 
     return records
 
@@ -41,9 +98,10 @@ def load_golden_dataset(dataset_path: Path) -> list[dict]:
 def run_evaluation(
     prompt_path: str,
     model: str,
+    dataset_path: str,
     structured_output: bool = False,
 ) -> list[dict]:
-    dataset = load_golden_dataset(DATASET_PATH)
+    dataset = load_golden_dataset(resolve_project_path(dataset_path))
     results = []
 
     for item in dataset:
@@ -84,6 +142,9 @@ def run_evaluation(
                 "id": item["id"],
                 "email": item["email"],
                 "expected_label": expected_label,
+                "expected_summary": item["expected_summary"],
+                "expected_difficulty": item["expected_difficulty"],
+                "notes": item["notes"],
                 "predicted_label": predicted_label,
                 "predicted_summary": predicted_summary,
                 "correct": correct,
@@ -138,6 +199,7 @@ def save_results(
     prompt_path: str,
     model: str,
     output_path: str,
+    dataset_path: str,
     structured_output: bool = False,
 ) -> None:
     resolved_output_path = PROJECT_ROOT / output_path
@@ -147,6 +209,7 @@ def save_results(
         "configuration": {
             "prompt_path": prompt_path,
             "model": model,
+            "dataset_path": dataset_path,
             "temperature": 0,
             "structured_output": structured_output,
         },
@@ -163,6 +226,12 @@ def save_results(
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate an email classifier."
+    )
+
+    parser.add_argument(
+        "--dataset",
+        required=True,
+        help="Path to a versioned golden dataset.",
     )
 
     parser.add_argument(
@@ -198,6 +267,7 @@ if __name__ == "__main__":
     evaluation_results = run_evaluation(
         prompt_path=args.prompt,
         model=args.model,
+        dataset_path=args.dataset,
         structured_output=args.structured_output,
     )
 
@@ -212,6 +282,7 @@ if __name__ == "__main__":
         prompt_path=args.prompt,
         model=args.model,
         output_path=args.output,
+        dataset_path=args.dataset,
         structured_output=args.structured_output,
     )
 

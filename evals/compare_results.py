@@ -36,6 +36,19 @@ def compare_results(
     current: dict[str, Any],
 ) -> dict[str, Any]:
     """Compare current evaluation results against the baseline."""
+    baseline_dataset = (baseline.get("configuration") or {}).get(
+        "dataset_path"
+    )
+    current_dataset = (current.get("configuration") or {}).get(
+        "dataset_path"
+    )
+
+    if baseline_dataset != current_dataset:
+        raise ValueError(
+            "Baseline and current results use different dataset versions: "
+            f"{baseline_dataset!r} != {current_dataset!r}"
+        )
+
     baseline_scores = baseline["scores"]
     current_scores = current["scores"]
 

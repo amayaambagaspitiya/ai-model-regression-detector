@@ -2,6 +2,7 @@
   "configuration": {
     "prompt_path": "prompts/email_classifier_v1.txt",
     "model": "llama-3.1-8b-instant",
+    "dataset_path": "data/golden_emails_v1.jsonl",
     "temperature": 0
   },
   "scores": {

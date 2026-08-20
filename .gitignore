@@ -5,4 +5,5 @@ __pycache__/
 .DS_Store
 results/*
 !results/baseline_results.json
+!results/baseline_v2_results.json
 reports/

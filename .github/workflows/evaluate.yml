@@ -31,12 +31,14 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           python evals/run_evaluation.py \
-            --prompt prompts/email_classifier_v2.txt \
-            --model llama-3.1-8b-instant \
-            --output results/ci_current_results.json
+            --dataset data/golden_emails_v2.jsonl \
+            --prompt prompts/email_classifier_v3.txt \
+            --model openai/gpt-oss-20b \
+            --output results/ci_current_results.json \
+            --structured-output
 
       - name: Compare against baseline
         run: |
           python evals/compare_results.py \
-            --baseline results/baseline_results.json \
+            --baseline results/baseline_v2_results.json \
             --current results/ci_current_results.json
