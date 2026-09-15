@@ -69,7 +69,9 @@ def get_completion_settings(model: str) -> dict:
 
     if model.startswith("openai/gpt-oss"):
         return {
-            "max_completion_tokens": 200,
+            # Reasoning models spend some of this budget on hidden
+            # reasoning before the visible JSON answer.
+            "max_completion_tokens": 800,
             "reasoning_format": "hidden",
         }
 
