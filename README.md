@@ -171,6 +171,33 @@ python evals/generate_model_comparison_report.py \
 Reports are written to `reports/` by default. This directory is also ignored by
 Git because reports are generated artifacts.
 
+## Score summary quality
+
+Category accuracy stays exact-match. To score predicted summaries against the
+human-written expected summaries, run DeepEval GEval on an existing result
+file:
+
+```bash
+python evals/score_summaries.py \
+  --results results/baseline_v2_results.json \
+  --judge-model openai/gpt-oss-20b
+```
+
+This writes `reports/summary_quality_report.json`. It does not change the
+GitHub Actions regression gate, which still compares category accuracy only.
+
+The first full v2 snapshot, scored against `results/baseline_v2_results.json`,
+was:
+
+- mean score: `0.94`
+- pass rate: `47/50` (94%) at threshold `0.7`
+
+The three failures were incomplete spam summaries (`email_004`, `email_038`,
+`email_040`): they captured the scam but dropped the click/urgency details.
+Prompt v3 now asks the classifier to keep those instructions without inventing
+extra facts. Re-score after the next structured evaluation if you want an
+updated summary-quality snapshot.
+
 ## Repository structure
 
 ```text

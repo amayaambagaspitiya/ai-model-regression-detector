@@ -23,6 +23,8 @@ Return ONLY valid JSON in this exact format:
 Rules:
 - category must be exactly one of: billing, support, sales, spam, other
 - summary must be one concise sentence
+- Keep the core request, including any click, reply, send, or urgency instructions if they are in the email
+- Do not add judgments or details that are not in the email
 - Do not include markdown
 - Do not include ```json
 - Do not include explanations before or after the JSON
